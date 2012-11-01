@@ -1,0 +1,205 @@
+<html>
+<head><title>fractalplay</title></head>
+<body>
+
+Color: <select onchange="changeColor(this);">
+ <option value="red">Red</option>
+ <option value="green">Green</option>
+ <option value="blue">Blue</option>
+ <option value="magenta" selected>Magenta</option>
+ <option value="orange">Orange</option>
+ <option value="yellow">Yellow</option>
+</select>
+
+r<input type="number" id="red1" size="1" value="255" min="0" max="255"> g<input type="number" id="green1" size="1" value="0" min="0" max="255">b<input type="number" id="blue1" size="1" value="255" min="0" max="255">
+
+Smoothing: <select onchange="smoothe(this);">
+ <option value="1" selected>on</option>
+ <option value="0" >off</option>
+</select>
+
+<br>
+
+
+Size: <input id='size' type='number' min='10' max='1000' size='3' value='200'>		
+
+Scale: <select onchange="changeZoom(this);">
+ <option value="10">0.1</option>
+ <option value="50">0.5</option>
+
+ <option value="100" selected>1 </option>
+ <option value="125">1.25</option>
+ <option value="135">1.35</option>
+</select>
+
+X: <input type="number" id="scaleX1" value="100" size="1">
+Y: <input type="number" id="scaleY1" value="100" size="1">
+
+Crop: <select onchange="crop(this);">
+ <option value="0" selected>0</option>
+ <option value="1">1</option>
+ <option value="2">2</option>
+ <option value="3">3 </option>
+ <option value="4">4</option>
+ <option value="5">5</option>
+ <option value="6">6</option>
+ <option value="7">7</option>
+ <option value="10">10</option>
+</select>
+
+<br>
+
+
+scalars: <input type="text" id="scalarA1" size="1"><input type="text" id="scalarB1" size="1"><input type="text" id="scalarC1" size="1"><input type="text" id="scalarD1" size="1"><input type="text" id="scalarj" size="1"><input type="text" id="scalarj1" size="1"><input type="text" id="scalarj2" size="1">
+<input id ="testOne" type="button" value="Render" onClick="go()"></br>
+		
+<canvas id="canvas" width="400" height="200">
+    HTML5 Canvas not supported.
+</canvas>
+
+<script language="javascript" src="fractals.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+		
+		
+		var canvas = document.getElementById('canvas'),
+				ctx = canvas.getContext('2d'),
+				zoom = 200,
+				size = document.getElementById('size'),
+				test1 = new Fractal(size.value),
+				test = new Fractal(size.value),
+				xi = document.getElementById('scaleX1'),
+				yi = document.getElementById('scaleY1'),
+				ri = document.getElementById('red1'),
+				gi = document.getElementById('green1'),
+				bi = document.getElementById('blue1'),
+				aS = document.getElementById('scalarA1'),
+				bS = document.getElementById('scalarB1'),
+				cS = document.getElementById('scalarC1'),
+				dS = document.getElementById('scalarD1'),
+				j = document.getElementById('scalarj'),
+				j1 = document.getElementById('scalarj1'),
+				j2 = document.getElementById('scalarj2'),
+				phi = 1.6180339887;
+
+
+go = function()
+{		test1.canvas.height = size.value;
+	  test1.canvas.width = size.value;	
+		test.canvas.height = size.value;
+		test.canvas.width = size.value;
+		canvas.height = size.value;
+		canvas.width = size.value * 2;
+		test1.scale(parseFloat(xi.value),parseFloat(yi.value));
+		test1.toRGB(parseFloat(ri.value),parseFloat(gi.value),parseFloat(bi.value));
+		test1.scalar.a = parseFloat(aS.value);
+		test1.scalar.b = parseFloat(bS.value);
+		test1.scalar.c = parseFloat(cS.value);
+		test1.scalar.d = parseFloat(dS.value);
+		test1.j = parseFloat(j.value);
+		test1.j1 = parseFloat(j1.value);
+		test1.j2 = parseFloat(j2.value);
+		test1.render();
+		test1.draw();
+		test.render();
+		test.draw(ctx,size.value);
+		
+};
+ 
+
+ 
+
+initTest1 = function ()
+{		xi.value = yi.value = 100;
+		aS.value = bS.value = cS.value = dS.value = 1;
+		j.value = 1;
+		j1.value = j2.value = 0;
+		
+}
+
+initTest1();
+go();
+
+
+
+
+canvas.onclick = function(e)
+{ 
+go();
+}
+
+
+function changeZoom(sel)
+{
+	var opt = sel.options[sel.selectedIndex];
+	zoom = parseFloat(opt.value);
+	xi.value = yi.value = zoom;
+go();
+}
+
+function crop(sel)
+{
+	var opt = sel.options[sel.selectedIndex];
+	test1.crop = parseFloat(opt.value);
+	
+go();
+}
+
+function smoothe(sel) {
+	var smoothColors = !!parseInt(sel.options[sel.selectedIndex].value,10);
+	if (smoothColors == 0)
+	{ test1.smoothe('off');
+	  test.smoothe('off');
+		go();
+		
+	} else
+	{ test.smoothe();
+	  test1.smoothe();
+		go();
+	}
+}
+
+function changeColor(sel) {
+	var color = sel.options[sel.selectedIndex].value;
+	if (color == "red") { 	ri.value=255; gi.value=0; bi.value=0;}
+  else if (color == "green") { ri.value=0; gi.value=255; bi.value=0;}
+	else if (color == "blue")  { ri.value=0; gi.value=0; bi.value=255;}
+	else if (color == "magenta")  { ri.value=255; gi.value=0; bi.value=255;}
+	else if (color == "orange")	{ri.value=255; gi.value=165; bi.value=0;}
+	else if (color == "yellow")	{ri.value=255; gi.value=255; bi.value=0;}
+	go();
+}
+
+function changeAlgorithm(sel) {
+	var frac = sel.options[sel.selectedIndex].value;
+	
+	switch (frac) {
+		case "mandelbrot" : initTest1(); test1.mandelbrot(); test.mandelbrot(); go(); break;
+		case "tricorn" : initTest1(); cS.value=-1; test1.mandelbrot(-1); test.mandelbrot(-1); go(); break;
+		case "julia1" : initTest1(); j.value = 0; j1.value=phi-2; j2.value=phi-1; test1.julia(phi-2,phi-1); test.julia(phi-2,phi-1); go(); break;
+		case "julia2" : initTest1(); j.value = 0; j1.value=1-phi; j2.value=0; test1.julia(1-phi,0); test.julia(1-phi,0); go(); break;
+		case "julia3" : initTest1(); j.value = 0; j1.value=0.285; j2.value=0; test1.julia(0.285,0); test.julia(0.285,0); go(); break;
+		case "julia4" : initTest1(); j.value = 0; j1.value=0.285; j2.value=0.01; test1.julia(0.285,0.01); test.julia(0.285,0.01); go(); break;
+		case "julia5" : initTest1(); j.value = 0; j1.value=-0.835; j2.value=-0.2321; test1.julia(-0.835, -0.2321); test.julia(-0.835, -0.2321); go(); break;
+		
+		
+	}
+}
+
+</script>
+</br>
+<div style="display:inline-block;">
+
+<select onchange="changeAlgorithm(this);" style="height:100px;width:200px;" size=8>
+ <option value="mandelbrot">Mandelbrot Set</option>
+ <option value="tricorn">Tricorn (Mandelbrot -1)</option>
+ <option value="julia1">Julia (phi-2, phi-1)</option>
+ <option value="julia2">Julia (1-phi, 0)</option>
+ <option value="julia3">Julia (0.285, 0)</option>
+ <option value="julia4">Julia (0.285, 0.01)</option>
+ <option value="julia5">Julia (-0.835, -0.2321)</option>
+ 
+</select>
+
+</body></html>
+
