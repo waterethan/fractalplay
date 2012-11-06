@@ -1,3 +1,21 @@
+/*
+* Copyright (c) 2012 Ethan Gutierrez.
+*
+* This software is provided 'as-is', without any express or implied
+* warranty.  In no event will the author be held liable for any damages
+* arising from the use of this software.
+* Permission is granted to anyone to use this software for any purpose,
+* including commercial applications, and to alter it and redistribute it
+* freely, subject to the following restrictions:
+* 1. The origin of this software must not be misrepresented; you must not
+* claim that you wrote the original software. If you use this software
+* in a product, an acknowledgment in the product documentation would be
+* appreciated but is not required.
+* 2. Altered source versions must be plainly marked as such, and must not be
+* misrepresented as being the original software.
+* 3. This notice may not be removed or altered from any source distribution.
+*/
+
 var phi = 1.6180339887,
     log2 = Math.log(2);
     
@@ -18,6 +36,7 @@ Fractal = function (size)
   this.j1 = 0;
   this.j2 = 0;
   this.crop = 0; // iterations to skip, positive values fill black, negative no imageData.
+  this.rotation = 0;
   this.showTime = true;
 }
 
@@ -64,8 +83,7 @@ Fractal.prototype.smoothe = function(toggle)
   {this.smoothing = 'smoothe'}
 }
 
-Fractal.prototype.rotate = function(degrees)
-{ }
+
 Fractal.prototype.render = function (algorithm, iterations) // defaults: algorythm = algorithms.smooth.standard, iterations=32
 {   var time = Date.now(),
         fractx = this.context,
@@ -106,23 +124,23 @@ Fractal.prototype.render = function (algorithm, iterations) // defaults: algoryt
         var p = (h * iy + ix) * 4;
         if (i < Math.abs(crop))
         { if (crop > 0)
-          { pix[p] = 0;  // red
-            pix[p+1] = 0; // green
+          { pix[p] = 0;    // red
+            pix[p+1] = 0;  // green
             pix[p+2] = 0;  // blue
-            pix[p+3] = 255;
+            pix[p+3] = 255;// alpha
           }
         } else if ( i < color)
         {  
-          pix[p] =  i/gamma * r;    // red
+          pix[p] =  i/gamma * r;   // red
           pix[p+1] =  i/gamma * g; // green
-          pix[p+2] =  i/gamma * b; //  * m*3)/2;  // blue
-          pix[p+3] = 255;
+          pix[p+2] =  i/gamma * b; // blue
+          pix[p+3] = 255;          // alpha
 
         } else if (i > it - fill)
-        { pix[p] = 0;  // red
-          pix[p+1] = 0; // green
+        { pix[p] = 0;    // red
+          pix[p+1] = 0;  // green
           pix[p+2] = 0;  // blue
-          pix[p+3] = 255;
+          pix[p+3] = 255;// alpha
         } else
         { //smoothing is only visible for first 10-15 iterations
           pix[p] = i % 8 * 32;    // red
@@ -146,12 +164,16 @@ Fractal.prototype.draw = function (canvasContext,xCord,yCord)
 {   var xC = xCord || 0,
         yC = yCord || 0,
         cContext = canvasContext || ctx;
-    cContext.drawImage(this.canvas,xC,yC);
+    cContext.save();
+     cContext.translate(xC + this.canvas.width/2, yC + this.canvas.height/2);
+      cContext.rotate(this.rotation * Math.PI/180);
+       cContext.drawImage(this.canvas, - this.canvas.width/2, - this.canvas.height/2);
+    cContext.restore();
 }
 
 
 algorithms =
-{   smoothe: // since the main reason to turn off smoothing is to lower render time on large fractals, even one iff statement can slow things down so it is best to rewrite the function clean without smoothing.
+{   smoothe: // since the main reason to turn off smoothing is to lower render time on large fractals, even one if statement can slow things down so it is best to rewrite the function clean without smoothing.
     {   standard:  function(x0,y0,it,j,j1,j2,aS,bS,cS,dS)
                     {   var x = x0,
                         y = y0;
@@ -161,7 +183,7 @@ algorithms =
                         y = 2.0 * cS * x * y + y0 * j + j2;
                         x = z * dS;
                     }
-                    i -= Math.log(Math.log(x*x+y*y)/Math.log(2));
+                    i -= Math.log(Math.log(x*x+y*y)/log2);
                     if (i < 0) {i=0};
                     return i;
                     }
