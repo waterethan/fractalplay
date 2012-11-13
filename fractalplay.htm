@@ -9,17 +9,31 @@ Color: <select onchange="changeColor(this);">
  <option value="magenta" selected>Magenta</option>
  <option value="orange">Orange</option>
  <option value="yellow">Yellow</option>
+ <option value="white">White</option>
 </select>
 
 r<input type="number" id="red1" size="1" value="255" min="0" max="255"> g<input type="number" id="green1" size="1" value="0" min="0" max="255">b<input type="number" id="blue1" size="1" value="255" min="0" max="255">
 
-Smoothing: <select onchange="smoothe(this);">
- <option value="1" selected>on</option>
- <option value="0" >off</option>
+Algorithm <select onchange="changeAlgorithm(this);"  >
+ <option value="mandelbrot">Mandelbrot Set</option>
+ <option value="julia1">Julia (phi-2, phi-1)</option>
+ <option value="plasma">Diamond Square</option>
+ <option value="terrain">Midpoint Displacement</option>
+ <option value="tricorn">Tricorn (Mandelbrot -1)</option>
+ <option value="julia2">Julia (1-phi, 0)</option>
+ <option value="julia3">Julia (0.285, 0)</option>
+ <option value="julia4">Julia (0.285, 0.01)</option>
+ <option value="julia5">Julia (-0.835, -0.2321)</option>
+ 
+</select>
+Type: <select id ="changeType" onchange="changeType(this);">
+ <option value="smoothe" >Smoothe</option>
+ <option value="normal" selected>Normal</option>
+ <option value="sandbox" >Sandbox</option>
 </select>
 
-<br>
 
+<div id='renderTimes'></div>
 
 Size: <input id='size' type='number' min='10' max='1000' size='3' value='200'>		
 
@@ -37,7 +51,6 @@ Y: <input type="number" id="scaleY1" value="100" size="1">
 
 Crop: <select onchange="crop(this);">
  <option value="0" selected>0</option>
- <option value="1">1</option>
  <option value="2">2</option>
  <option value="3">3 </option>
  <option value="4">4</option>
@@ -45,6 +58,14 @@ Crop: <select onchange="crop(this);">
  <option value="6">6</option>
  <option value="7">7</option>
  <option value="10">10</option>
+ <option value="-1">-1</option>
+ <option value="-2">-2</option>
+ <option value="-3">-3 </option>
+ <option value="-4">-4</option>
+ <option value="-5">-5</option>
+ <option value="-6">-6</option>
+ <option value="-7">-7</option>
+ <option value="-10">-10</option>
 </select>
 
 Rotate: <input type="number" id="rotation" min='0' max='359' value="0" size="1">
@@ -63,9 +84,13 @@ Rotate: <input type="number" id="rotation" min='0' max='359' value="0" size="1">
 
 
 scalars: <input type="text" id="scalarA1" size="1"><input type="text" id="scalarB1" size="1"><input type="text" id="scalarC1" size="1"><input type="text" id="scalarD1" size="1"><input type="text" id="scalarj" size="1"><input type="text" id="scalarj1" size="1"><input type="text" id="scalarj2" size="1">
-<input id ="testOne" type="button" value="Render" onClick="go()"></br>
+<input id ="testOne" type="button" value="Render" onClick="goDefault();ready();go();"></br>
 		
 <canvas id="canvas" width="400" height="200">
+    HTML5 Canvas not supported.
+</canvas>
+
+<canvas id="plasma" width="200" height="200">
     HTML5 Canvas not supported.
 </canvas>
 
@@ -75,54 +100,55 @@ scalars: <input type="text" id="scalarA1" size="1"><input type="text" id="scalar
 /*
 * Copyright (c) 2012 Ethan Gutierrez.
 *
-* This software is provided 'as-is', without any express or implied
-* warranty.  In no event will the author be held liable for any damages
-* arising from the use of this software.
-* Permission is granted to anyone to use this software for any purpose,
-* including commercial applications, and to alter it and redistribute it
-* freely, subject to the following restrictions:
-* 1. The origin of this software must not be misrepresented; you must not
-* claim that you wrote the original software. If you use this software
-* in a product, an acknowledgment in the product documentation would be
-* appreciated but is not required.
-* 2. Altered source versions must be plainly marked as such, and must not be
-* misrepresented as being the original software.
-* 3. This notice may not be removed or altered from any source distribution.
+*  This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */		
 		
-		var canvas = document.getElementById('canvas'),
+		
+// Comment this out if using jquery. 		
+ $ = function(id)
+ { return document.getElementById(id)}
+ 
+		var canvas = $('canvas'),
 				ctx = canvas.getContext('2d'),
 				zoom = 200,
-				size = document.getElementById('size'),
+				size = $('size'),
 				test1 = new Fractal(size.value),
 				test = new Fractal(size.value),
-				xi = document.getElementById('scaleX1'),
-				yi = document.getElementById('scaleY1'),
-				ri = document.getElementById('red1'),
-				gi = document.getElementById('green1'),
-				bi = document.getElementById('blue1'),
-				aS = document.getElementById('scalarA1'),
-				bS = document.getElementById('scalarB1'),
-				cS = document.getElementById('scalarC1'),
-				dS = document.getElementById('scalarD1'),
-				j = document.getElementById('scalarj'),
-				j1 = document.getElementById('scalarj1'),
-				j2 = document.getElementById('scalarj2'),
-				rotation = document.getElementById('rotation'),
-				phi = 1.6180339887;
+				xi = $('scaleX1'),
+				yi = $('scaleY1'),
+				ri = $('red1'),
+				gi = $('green1'),
+				bi = $('blue1'),
+				aS = $('scalarA1'),
+				bS = $('scalarB1'),
+				cS = $('scalarC1'),
+				dS = $('scalarD1'),
+				j = $('scalarj'),
+				j1 = $('scalarj1'),
+				j2 = $('scalarj2'),
+				renders = $('renderTimes');
 
 
-go = function()
-{	var sv = parseFloat(size.value);
+ready = function()
+{	  var sv = parseInt(size.value);
 		test1.canvas.height = sv;
 	  test1.canvas.width = sv;	
-		test.canvas.height = sv;
-		test.canvas.width = sv;
 		canvas.height = sv;
 		canvas.width = sv * 2;
-		ctx.fillRect(0, 0, sv, sv * 2);
+		//ctx.fillRect(0, 0, sv, sv * 2);
 		test1.scale(parseFloat(xi.value),parseFloat(yi.value));
-		test1.toRGB(parseFloat(ri.value),parseFloat(gi.value),parseFloat(bi.value));
+		test1.toRGB(parseInt(ri.value),parseInt(gi.value),parseInt(bi.value));
 		test1.scalar.a = parseFloat(aS.value);
 		test1.scalar.b = parseFloat(bS.value);
 		test1.scalar.c = parseFloat(cS.value);
@@ -131,13 +157,31 @@ go = function()
 		test1.j1 = parseFloat(j1.value);
 		test1.j2 = parseFloat(j2.value);
 		test1.rotation = parseFloat(rotation.value);
-		test1.render();
-		test1.draw();
-		test.render();
-		test.draw(ctx,sv,0);
+
+		
+		//plasma.init('plasma',200,200,20,1);
 		
 };
- 
+
+showRenders = function()
+{var generate1 = test1.lastRender + test1.lastStroke,
+			generate = test.lastRender + test.lastStroke;
+		renders.innerHTML = 'Render times (generate/texture) Last:'
+		 + generate1
+			+'  (' + test1.lastRender
+			 + '/' + test1.lastStroke
+				+ ') Default:' + generate
+				 + '  (' + test.lastRender
+					+ '/' + test.lastStroke + ')';
+}
+
+go = function()
+{ 
+ 		test1.render();
+		showRenders(); 
+		test1.draw();
+		test.draw(ctx,parseInt(size.value));
+}
 
  
 
@@ -146,18 +190,30 @@ initTest1 = function ()
 		aS.value = bS.value = cS.value = dS.value = 1;
 		j.value = 1;
 		j1.value = j2.value = 0;
-		
+		test1 = new Fractal;
+		test = new Fractal(parseInt(size.value));
+}
+
+goDefault = function()
+{
+test.canvas.height = parseInt(size.value);
+test.canvas.width = parseInt(size.value);
+test.render();
+showRenders();
 }
 
 initTest1();
+goDefault();
+ready();
 go();
 
 
 
 
 canvas.onclick = function(e)
-{ 
-go();
+{
+ goDefault();
+ ready();go();
 }
 
 
@@ -166,15 +222,21 @@ function changeZoom(sel)
 	var opt = sel.options[sel.selectedIndex];
 	zoom = parseFloat(opt.value);
 	xi.value = yi.value = zoom;
-go();
+ready();go();
 }
 
 function crop(sel)
 {
 	var opt = sel.options[sel.selectedIndex];
 	test1.crop = parseFloat(opt.value);
-	
-go();
+	if (opt.value < 0)
+	{	ready();
+		go();
+	} else
+	{	test1.stroke();
+		test1.draw();
+		showRenders();
+	}
 }
 
 function rotate(sel)
@@ -182,24 +244,29 @@ function rotate(sel)
 	var opt = sel.options[sel.selectedIndex];
 	rotation.value = parseFloat(opt.value);
 	
-go();
+ready();go();
 }
 
-function smoothe(sel) {
-	var smoothColors = !!parseInt(sel.options[sel.selectedIndex].value,10);
-	if (smoothColors == 0)
-	{ test1.smoothe('off');
-	  test.smoothe('off');
-		go();
-		
+function changeType(sel)
+{	var algorithmType = sel.options[sel.selectedIndex].value;
+	var algo = test.algorithm;
+	if (typeof algo[algorithmType] != 'undefined')
+	{	test1.algo = algorithmType;
+		test.algo = algorithmType;
+		goDefault();
+		ready();go();
 	} else
-	{ test.smoothe();
-	  test1.smoothe();
-		go();
+	{	test1.algo = 'normal';
+		test.algo = 'normal';
+		goDefault();
+		ready();go();
+
 	}
 }
 
-function changeColor(sel) {
+
+function changeColor(sel)
+{
 	var color = sel.options[sel.selectedIndex].value;
 	if (color == "red") { 	ri.value=255; gi.value=0; bi.value=0;}
   else if (color == "green") { ri.value=0; gi.value=255; bi.value=0;}
@@ -207,39 +274,110 @@ function changeColor(sel) {
 	else if (color == "magenta")  { ri.value=255; gi.value=0; bi.value=255;}
 	else if (color == "orange")	{ri.value=255; gi.value=165; bi.value=0;}
 	else if (color == "yellow")	{ri.value=255; gi.value=255; bi.value=0;}
-	go();
+	else if (color == "white")	{ri.value=255; gi.value=255; bi.value=255;}
+	ready(); test1.stroke();test1.draw(); test.draw(ctx,parseInt(size.value)); showRenders();
 }
 
-function changeAlgorithm(sel) {
+function changeAlgorithm(sel)
+{
 	var frac = sel.options[sel.selectedIndex].value;
-	
-	switch (frac) {
-		case "mandelbrot" : initTest1(); test1.mandelbrot(); test.mandelbrot(); go(); break;
-		case "tricorn" : initTest1(); cS.value=-1; test1.mandelbrot(-1); test.mandelbrot(-1); go(); break;
-		case "julia1" : initTest1(); j.value = 0; j1.value=phi-2; j2.value=phi-1; test1.julia(phi-2,phi-1); test.julia(phi-2,phi-1); go(); break;
-		case "julia2" : initTest1(); j.value = 0; j1.value=1-phi; j2.value=0; test1.julia(1-phi,0); test.julia(1-phi,0); go(); break;
-		case "julia3" : initTest1(); j.value = 0; j1.value=0.285; j2.value=0; test1.julia(0.285,0); test.julia(0.285,0); go(); break;
-		case "julia4" : initTest1(); j.value = 0; j1.value=0.285; j2.value=0.01; test1.julia(0.285,0.01); test.julia(0.285,0.01); go(); break;
-		case "julia5" : initTest1(); j.value = 0; j1.value=-0.835; j2.value=-0.2321; test1.julia(-0.835, -0.2321); test.julia(-0.835, -0.2321); go(); break;
-		
-		
+	switch (frac)
+	{
+		case "mandelbrot" :
+			initTest1();
+			test1.mandelbrot();
+			test.mandelbrot();
+			goDefault();
+			ready();go();
+			
+		 break;
+		case "tricorn" :
+			initTest1();
+			cS.value = -1;
+			test1.mandelbrot(-1);
+			test.mandelbrot(-1);
+			goDefault();
+			ready();go();
+		 break;
+		case "terrain" :
+			initTest1();
+			test1.terrain();
+			test.terrain(40,0.5,1);
+			aS.value = 40;
+			bS.value = 0.5;
+			cS.value = 1;
+			dS.value = 'n/a';
+			j.value = 'n/a';
+			j1.value = 'n/a';
+			j2.value = 'n/a';
+			goDefault();
+			ready();go();
+		 break;
+		case "plasma":
+			test1.plasma();
+			test.toRGB(255,255,255);
+			test.plasma();
+			goDefault();
+			ready();go();
+			break;
+		case "julia1" :
+			initTest1();
+			j.value = 0;
+			j1.value=phi-2;
+			j2.value=phi-1;
+			test1.julia(phi-2,phi-1);
+			test.julia(phi-2,phi-1);
+			goDefault();
+			ready();go();
+		 break;
+		case "julia2" :
+			initTest1();
+			j.value = 0;
+			j1.value=1-phi;
+			j2.value=0;
+			test1.julia(1-phi,0);
+			test.julia(1-phi,0);
+			goDefault();
+			ready();go();
+		 break;
+		case "julia3" :
+			initTest1();
+			j.value = 0; 
+			j1.value=0.285;
+			j2.value=0;
+			test1.julia(0.285,0);
+			test.julia(0.285,0);
+			goDefault();
+			ready();go();
+		 break;
+		case "julia4" :
+			initTest1();
+			j.value = 0;
+			j1.value=0.285;
+			j2.value=0.01;
+			test1.julia(0.285,0.01);
+			test.julia(0.285,0.01);
+			goDefault();
+			ready();go();
+		 break;
+		case "julia5" :
+			initTest1();
+			j.value = 0;
+			j1.value=-0.835;
+			j2.value=-0.2321;
+			test1.julia(-0.835, -0.2321);
+			test.julia(-0.835, -0.2321);
+			goDefault();
+			ready();go();
+		 break;
 	}
 }
 
 </script>
 </br>
-<div style="display:inline-block;">
 
-<select onchange="changeAlgorithm(this);" style="height:100px;width:200px;" size=8>
- <option value="mandelbrot">Mandelbrot Set</option>
- <option value="tricorn">Tricorn (Mandelbrot -1)</option>
- <option value="julia1">Julia (phi-2, phi-1)</option>
- <option value="julia2">Julia (1-phi, 0)</option>
- <option value="julia3">Julia (0.285, 0)</option>
- <option value="julia4">Julia (0.285, 0.01)</option>
- <option value="julia5">Julia (-0.835, -0.2321)</option>
- 
-</select>
+
+
 
 </body></html>
 
