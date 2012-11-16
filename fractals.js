@@ -25,7 +25,8 @@
 // Cache some constants that will be useful.
 var phi = 1.6180339887,
     log2 = Math.log(2),
-    pi = Math.PI;
+    pi = Math.PI,
+    toRad = pi/180;
     
 
 /**
@@ -115,17 +116,30 @@ bind = function(number, max, min)
 Fractal = function (width, height)
 { this.canvas = document.createElement('canvas');
   this.context = this.canvas.getContext('2d');
+  this.width = width || 200;
+  this.height = height || this.width;
   this.canvas.width = width || 200;
   this.canvas.height = height || this.canvas.width;
   this.algorithm = algorithms.mj;
+  this.speed = 1;
   this.algo = 'normal';
   this.iterations = 32;
   this.points = [];
-  this.xs = 0; // x Shift
+  this.xs = -0.5; // x Shift
   this.ys = 0; // y Shift
   this.color =
   { it: 0, red:255, green: 255, blue:255, gamma: 13};
-  this.getColor = function(c, type, mod0,mod1,mod2)
+  this.scalar = { a: 1, b: 1, c: 1, d: 1, x: 0.5, y: 0.5};
+  this.zoom = {x: 1, y: 1};
+  this.j = 1;
+  this.j1 = 0;
+  this.j2 = 0;
+  this.crop = 0; // iterations to skip, positive values fill black, negative no imageData.
+  this.rotation = 0;
+  this.showTime = true;
+  this.type = 'mandelbrot';
+  this.lastRender = 'n/a';
+  this.getColor = function(c, type, mod0,mod1,mod2) //not in use
   {
     var red = 0, green = 0, blue = 0;
 
@@ -172,15 +186,6 @@ Fractal = function (width, height)
       b: bind(~~(blue * mod2),255)
     };
   }
-  this.scalar = { a: 1, b: 1, c: 1, d: 1, x: 100, y: 100};
-  this.j = 1;
-  this.j1 = 0;
-  this.j2 = 0;
-  this.crop = 0; // iterations to skip, positive values fill black, negative no imageData.
-  this.rotation = 0;
-  this.showTime = true;
-  this.type = 'mandelbrot';
-  this.lastRender = 'n/a';
 }
 
 /* Plan to cleanup the class by pulling many of the properties into an init function
@@ -249,6 +254,16 @@ Fractal.prototype.stroke = function(style)
         
           }
         }
+      } else if (type == 'tree1')
+      { this.context.fillRect(0,0,w,h);
+        //this.canvas.width = this.scalar.a * this.scalar.a;
+      this.context.lineWidth   = 1;
+      this.context.beginPath();
+      this.generate(this.canvas.width/2, this.canvas.height, this.angle, this.iterations, this.crop, this.scalar.a);
+      this.context.closePath();
+      this.lastRender = Date.now() - start;
+      this.context.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
+      this.context.stroke();
       }
       else
       { var crop = this.crop,
@@ -298,13 +313,16 @@ Fractal.prototype.stroke = function(style)
     }
 
 Fractal.prototype.reposition = function(X,Y) //percent of canvas
-{ this.xs = X || 0;
-  this.ys = Y || 0;
+{ var ys = Y || 0;
+  this.xs += X;
+  this.ys += ys;
 }
 
 Fractal.prototype.scale = function(X,Y) //percent of fractal
-{ this.scalar.x = X || 0;
-  this.scalar.y = Y || this.girth.x;
+{ var sy = Y || X;
+  this.scalar.x += X;
+  this.scalar.y += sy;
+  this.zoom = {x: 100/this.scalar.x, y: 100/this.scalar.y}
 }
 
 Fractal.prototype.smoothe = function(toggle)
@@ -316,7 +334,8 @@ Fractal.prototype.smoothe = function(toggle)
 
 
 Fractal.prototype.mandelbrot = function(c) //non zero scalar -1 for tricorn; default 1;
-{ this.reposition(0,0);
+{ this.xs = -0.5;
+  this.ys = 0;
   this.scalar.c = c || 1;
   this.scalar.b = this.scalar.a = this.scalar.d = this.j = 1;
   this.j1 = this.j2 = 0;
@@ -330,14 +349,14 @@ Fractal.prototype.plasma = function(texture, roughness)
   this.algo = 'normal';
   this.texture = texture || 'plasma';
   this.preDraw = true;
+  this.color.it = 'all';
   this.addTexture = function (texture)
   {
     
   }
 }
 Fractal.prototype.julia = function(j1,j2)
-{ this.reposition(15,0);
-  this.j = 0;
+{ this.xs = this.ys = this.j = 0;
   this.scalar.b = this.scalar.c = this.scalar.d = this.scalar.a = 1;
   this.j1 = j1;
   this.j2 = j2;
@@ -355,11 +374,34 @@ Fractal.prototype.terrain = function (displacement, sharpness, lineWidth) //
   this.scalar.c = lineWidth || 1;
 }
 
+Fractal.prototype.tree = function (type, iterations, angle)
+{ this.algorithm = algorithms.tree;
+  this.algo = 'mono';
+  this.type = type || 'tree1';
+  this.lastRender = 0;
+  this.angle = -90;
+  this.iterations = iterations || 12;
+  this.scalar.a = 1 + this.width/100 - this.iterations/10;
+  this.generate = function (x1, y1, angle, it, crop, length)
+          {
+            if (it != 0)
+            {
+              var x2 = x1 + (Math.cos(angle * toRad) * it * length);
+              var y2 = y1 + (Math.sin(angle * toRad) * it * length);
+              this.context.moveTo(x1, y1);
+              this.context.lineTo(x2, y2);
+              this.generate(x2, y2, angle - 20, it - 1,crop,length);
+              this.generate(x2, y2, angle + 20, it - 1,crop, length);
+            } 
+          }
+}
 
 
 
 Fractal.prototype.render = function (iterations) // default=32;
 { // localize properties for speed and take note of the time so we can see how long this takes;
+  this.canvas.width = this.width/this.speed;
+  this.canvas.height = this.height/this.speed;
   var time = Date.now(),
       points = [[]],
       r  = this.color.red,
@@ -368,6 +410,7 @@ Fractal.prototype.render = function (iterations) // default=32;
       w = this.canvas.width,
       h = this.canvas.height,
       crop = this.crop || 0,
+      algorithm = this.algorithm[this.algo],
       it = iterations || this.iterations;
    
    if (this.type == 'mandelbrot' || this.type == 'julia')
@@ -382,11 +425,10 @@ Fractal.prototype.render = function (iterations) // default=32;
           j  = this.j,
           j1 = this.j1,
           j2 = this.j2,
-          xmin = -2   + (this.xs - 100 + this.scalar.x)/33,
-          xmax =  1   + (this.xs + 100 - this.scalar.x)/33,
-          ymin = -1.5 + (this.ys - 100 + this.scalar.y)/33,
-          ymax =  1.5 + (this.ys + 100 - this.scalar.y)/33,
-          algorithm = this.algorithm[this.algo],
+          xmin = this.xs + this.scalar.x - 2,///this.zoom,// + (this.xs - 100 + this.scalar.x)/33,
+          xmax = this.xs - this.scalar.x + 2,///this.zoom,// + (this.xs + 100 - this.scalar.x)/33,
+          ymin = this.ys + this.scalar.y - 2,///this.zoom,// + (this.ys - 100 + this.scalar.y)/33,
+          ymax = this.ys - this.scalar.y + 2,///this.zoom,// + (this.ys + 100 - this.scalar.y)/33,
           y0, x0, z;
       for ( var x = 0; x < w; x++)
         { x0 = xmin + (xmax - xmin) * x / w;
@@ -410,8 +452,7 @@ Fractal.prototype.render = function (iterations) // default=32;
       { this.context.fillStyle = 'white';
       } else
       { this.context.fillStyle = 'black'}
-    }
-    if (this.type == 'terrain')
+    } else if (this.type == 'terrain')
     { 
       for (i=0; i<=it; ++i)
       {
@@ -422,9 +463,7 @@ Fractal.prototype.render = function (iterations) // default=32;
       this.lastRender = Date.now() - time;
       this.stroke();
       
-    }
-    
-    if (this.type == 'plasma')
+    } else if (this.type == 'plasma')
     { 
       var p1, p2, p3, p4,x,y;
       var roughness = this.roughness;
@@ -441,7 +480,10 @@ Fractal.prototype.render = function (iterations) // default=32;
       this.points = points;
       this.lastRender = Date.now() - time;
       this.stroke(); 
-  }
+    } else if (this.type == 'tree1')
+    { 
+      this.stroke();
+    }
     
 }
 
@@ -450,8 +492,8 @@ Fractal.prototype.render = function (iterations) // default=32;
 Fractal.prototype.draw = function (canvasContext,xCord,yCord, width, height)
 {   var xC = xCord || 0,
         yC = yCord || 0,
-        w = width || this.canvas.width, //can compromise image quality for quick render for example
-        h = height || this.canvas.height,
+        w = width || this.width, //can compromise image quality for quick render for example
+        h = height || this.height,
         rotation = this.rotation || 0,
         cContext = canvasContext || ctx;
     cContext.save();
@@ -511,118 +553,131 @@ algorithms =
             }  
   },
   midpoint:
-  { normal: function(points, x, y, width, height, p1, p2, p3, p4, roughness)
-   {
-    var side1, side2, side3, side4, center;
-    var transWidth = ~~(width / 2);
-    var transHeight = ~~(height / 2);
+    { normal: function(points, x, y, width, height, p1, p2, p3, p4, roughness)
+            {
+            var side1, side2, side3, side4, center;
+            var transWidth = ~~(width / 2);
+            var transHeight = ~~(height / 2);
 
-    //as long as square is bigger then a pixel..
-    if (width > 1 || height > 1)
-    {
-      //center is just an average of all 4 corners
-      center = ((p1 + p2 + p3 + p4) / 4);
+            //as long as square is bigger then a pixel..
+            if (width > 1 || height > 1)
+            {
+            //center is just an average of all 4 corners
+            center = ((p1 + p2 + p3 + p4) / 4);
 
-      //randomly shift the middle point
-      center += (Math.random() - 0.5) * ((transWidth + transHeight) / 10) * roughness;
+            //randomly shift the middle point
+           center += (Math.random() - 0.5) * ((transWidth + transHeight) / 10) * roughness;
 
-      //sides are averages of the connected corners
-      //p1----p2
-      //| |
-      //p4----p3
-      side1 = ((p1 + p2) / 2);
-      side2 = ((p2 + p3) / 2);
-      side3 = ((p3 + p4) / 2);
-      side4 = ((p4 + p1) / 2);
+          //sides are averages of the connected corners
+          //p1----p2
+          //| |
+          //p4----p3
+         side1 = ((p1 + p2) / 2);
+         side2 = ((p2 + p3) / 2);
+         side3 = ((p3 + p4) / 2);
+         side4 = ((p4 + p1) / 2);
 
-      //its possible that middle point was moved out of bounds so correct it here
-      center = (center < 0) ? 0 : (center > 1) ? 1 : center;
-      side1 = (side1 < 0) ? 0 : (side1 > 1) ? 1 : side1;
-      side2 = (side2 < 0) ? 0 : (side2 > 1) ? 1 : side2;
-      side3 = (side3 < 0) ? 0 : (side3 > 1) ? 1 : side3;
-      side4 = (side4 < 0) ? 0 : (side4 > 1) ? 1 : side4;
-
-      //repeat operation for each of 4 new squares created
-      //recursion, baby!
-      algorithms.midpoint.normal(points, x, y, transWidth, transHeight, p1, side1, center, side4, roughness);
-      algorithms.midpoint.normal(points, x + transWidth, y, width - transWidth, transHeight, side1, p2, side2, center, roughness);
-      algorithms.midpoint.normal(points, x + transWidth, y + transHeight, width - transWidth, height - transHeight, center, side2, p3, side3, roughness);
-      algorithms.midpoint.normal(points, x, y + transHeight, transWidth, height - transHeight, side4, center, side3, p4, roughness);
-    }
-    else
-    {
-      //when last square is just a pixel, simply average it from the corners
-      points[x][y]= (p1 + p2 + p3 + p4) / 4;
-    }
-  },
+         //its possible that middle point was moved out of bounds so correct it here
+         center = (center < 0) ? 0 : (center > 1) ? 1 : center;
+         side1 = (side1 < 0) ? 0 : (side1 > 1) ? 1 : side1;
+         side2 = (side2 < 0) ? 0 : (side2 > 1) ? 1 : side2;
+         side3 = (side3 < 0) ? 0 : (side3 > 1) ? 1 : side3;
+         side4 = (side4 < 0) ? 0 : (side4 > 1) ? 1 : side4;
+    
+         //repeat operation for each of 4 new squares created
+         //recursion, baby!
+         algorithms.midpoint.normal(points, x, y, transWidth, transHeight, p1, side1, center, side4, roughness);
+         algorithms.midpoint.normal(points, x + transWidth, y, width - transWidth, transHeight, side1, p2, side2, center, roughness);
+         algorithms.midpoint.normal(points, x + transWidth, y + transHeight, width - transWidth, height - transHeight, center, side2, p3, side3, roughness);
+         algorithms.midpoint.normal(points, x, y + transHeight, transWidth, height - transHeight, side4, center, side3, p4, roughness);
+        }
+        else
+        {
+          //when last square is just a pixel, simply average it from the corners
+          points[x][y]= (p1 + p2 + p3 + p4) / 4;
+        }
+    },
     sandbox: function(points, x, y, width, height, p1, p2, p3, p4, roughness)
-   {
-    var side1, side2, side3, side4, center;
-    var transWidth = ~~(width / 2);
-    var transHeight = ~~(height / 2);
+            {
+              var side1, side2, side3, side4, center;
+              var transWidth = ~~(width / 2);
+              var transHeight = ~~(height / 2);
 
-    //as long as square is bigger then a pixel..
-    if (width > 1 || height > 1)
-    {
-      //center is just an average of all 4 corners
-      center = ((p1 + p2 + p3 + p4) / 4);
+              //as long as square is bigger then a pixel..
+              if (width > 1 || height > 1)
+              {
+              //center is just an average of all 4 corners
+              center = ((p1 + p2 + p3 + p4) / 4);
 
-      //randomly shift the middle point
-      center += (Math.random() - 0.5) * ((transWidth + transHeight) / 10) * roughness;
+              //randomly shift the middle point
+              center += (Math.random() - 0.5) * ((transWidth + transHeight) / 10) * roughness;
 
-      //sides are averages of the connected corners
-      //p1----p2
-      //| |
-      //p4----p3
-      side1 = ((p1 + p2) / 2);
-      side2 = ((p2 + p3) / 2);
-      side3 = ((p3 + p4) / 2);
-      side4 = ((p4 + p1) / 2);
+              //sides are averages of the connected corners
+              //p1----p2
+              //| |
+              //p4----p3
+              side1 = ((p1 + p2) / 2);
+              side2 = ((p2 + p3) / 2);
+              side3 = ((p3 + p4) / 2);
+              side4 = ((p4 + p1) / 2);
 
-      //its possible that middle point was moved out of bounds so correct it here
-      center = bind(center);
-      side1 = bind(side1);
-      side2 = bind(side2);
-      side3 = bind(side3);
-      side4 = bind(side4);
+              //its possible that middle point was moved out of bounds so correct it here
+              center = bind(center);
+              side1 = bind(side1);
+              side2 = bind(side2);
+              side3 = bind(side3);
+              side4 = bind(side4);
 
-      //repeat operation for each of 4 new squares created
-      //recursion
-      algorithms.midpoint.sandbox(points, x, y, transWidth, transHeight, p1, side1, center, side4, roughness);
-      algorithms.midpoint.sandbox(points, x + transWidth, y, width - transWidth, transHeight, side1, p2, side2, center, roughness);
-      algorithms.midpoint.sandbox(points, x + transWidth, y + transHeight, width - transWidth, height - transHeight, center, side2, p3, side3, roughness);
-      algorithms.midpoint.sandbox(points, x, y + transHeight, transWidth, height - transHeight, side4, center, side3, p4, roughness);
-    }
-    else
-    {
-      //when last square is just a pixel, simply average it from the corners
-      points[x][y]= (p1 + p2 + p3 + p4) / 4;
-    }
-  }
+              //repeat operation for each of 4 new squares created
+              //recursion
+              algorithms.midpoint.sandbox(points, x, y, transWidth, transHeight, p1, side1, center, side4, roughness);
+              algorithms.midpoint.sandbox(points, x + transWidth, y, width - transWidth, transHeight, side1, p2, side2, center, roughness);
+              algorithms.midpoint.sandbox(points, x + transWidth, y + transHeight, width - transWidth, height - transHeight, center, side2, p3, side3, roughness);
+              algorithms.midpoint.sandbox(points, x, y + transHeight, transWidth, height - transHeight, side4, center, side3, p4, roughness);
+              }
+              else
+              {
+                //when last square is just a pixel, simply average it from the corners
+                points[x][y]= (p1 + p2 + p3 + p4) / 4;
+              }
+            }
   },
   midpoint2d:
   { normal: function(points,start, end, max, sharpness)
-              {
+            {
               var middle = Math.round((start + end) * 0.5);
-              if ((end-start<=1) || middle==start || middle==end) {
-              return;
+              if ((end-start<=1) || middle==start || middle==end)
+              { return;
               }
               points[middle] = 0.5 * (points[end] + points[start]) + max*(1 - 2*Math.random());
-    //recursion:
-    algorithms.midpoint2d.normal(points,start, middle, max*sharpness, sharpness);
-    algorithms.midpoint2d.normal(points,middle, end, max*sharpness, sharpness);
-  },
-  sandbox: function(points,start, end, max, sharpness)
-              {
+              //recursion:
+              algorithms.midpoint2d.normal(points,start, middle, max*sharpness, sharpness);
+              algorithms.midpoint2d.normal(points,middle, end, max*sharpness, sharpness);
+            },
+      sandbox: function(points,start, end, max, sharpness)
+            {
               var middle = Math.round((start + end) * 0.5);
-              if ((end-start<=1) || middle==start || middle==end) {
-              return;
+              if ((end-start<=1) || middle==start || middle==end)
+              { return;
               }
               points[middle] = 0.5 * (points[end] + points[start]) + max*(1 - 2*Math.random());
-    //recursion:
-    algorithms.midpoint2d.sandbox(points,start, middle, max*sharpness, sharpness);
-    algorithms.midpoint2d.sandbox(points,middle, end, max*sharpness, sharpness);
-  }
+              //recursion:
+              algorithms.midpoint2d.sandbox(points,start, middle, max*sharpness, sharpness);
+              algorithms.midpoint2d.sandbox(points,middle, end, max*sharpness, sharpness);
+            }
   },
+  tree:
+      { mono:function (points, x1, y1, angle, depth)
+          {
+            if (depth != 0)
+            {
+              var x2 = x1 + (Math.cos(angle) * depth * gradient);
+              var y2 = y1 + (Math.sin(angle) * depth * gradient);
+              points[x] = [x1, y1, x2, y2,depth];
+              algorithms.tree.mono(points,x2, y2, angle - 20, depth - 1);
+              algorithms.tree.mono(points,x2, y2, angle + 20, depth - 1);
+            } 
+          }
+      }
 }
 
