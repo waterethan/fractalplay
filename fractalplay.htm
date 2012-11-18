@@ -3,7 +3,7 @@
 <body>
 
 <select onchange="changeColor(this);">
- <option value="none" selected>Color</option>
+ <option value="none" selected>Color:</option>
  <option value="red">Red</option>
  <option value="green">Green</option>
  <option value="blue">Blue</option>
@@ -40,24 +40,35 @@ depth:<input type="number" id="color.it" size="1" value="1" min="0">
 
 Iterations: <input id='iterations' type='number' min='10' max='1000' size='3' value='32'>
 
-<div id='renderTimes'></div>
+</br>
 
-Size: <input id='size' type='number' min='10' max='1000' size='3' value='200'>		
+<select onchange="$('size').value = this.value; goDefault(); ready(); go();">
+ <option value="100">100</option>
+ <option value="200" selected>Size:</option>
+ <option value="300">300</option>
+ <option value="400">400</option>
+ <option value="500">500</option>
+</select>
 
-Scale: <select onchange="changeZoom(this);">
+<input id='size' type='number' min='10' max='1000' size='3' value='200'>		
+
+
+
+<select onchange="changeZoom(this);">
  <option value="10">0.1</option>
  <option value="50">0.5</option>
 
  <option value="100">1 </option>
- <option value="118" selected>1.18</option>
+ <option value="118" selected>Scale:</option>
  <option value="135">1.35</option>
 </select>
 
 X: <input type="number" id="scaleX1" value="118" size="1">
 Y: <input type="number" id="scaleY1" value="118" size="1">
 
-Crop: <select onchange="crop(this);">
- <option value="0" selected>0</option>
+<select onchange="crop(this);">
+ <option value="0" selected>Crop</option>
+ <option value="0" >0</option>
  <option value="2">2</option>
  <option value="3">3 </option>
  <option value="4">4</option>
@@ -75,28 +86,43 @@ Crop: <select onchange="crop(this);">
  <option value="-10">-10</option>
 </select>
 
-Rotate: <input type="number" id="rotation" min='0' max='359' value="0" size="1">
-
 <select onchange="rotate(this);">
- <option value="0" selected>0</option>
+ <option value="0" selected>Rotate:</option>
+ <option value="0" >0</option>
  <option value="45">45</option>
  <option value="90">90</option>
  <option value="135">135 </option>
  <option value="180">180</option>
- <option value="225">215</option>
+ <option value="225">225</option>
  <option value="270">270</option>
  <option value="315">315</option>
 </select>
 
-Shift: <input type='button' id='xsleft' value="<" onclick='test1.reposition(-0.05); go();'>
-<input type='button' id='ysup' value="^" onclick='test1.reposition(0,-0.05); go();'>
-<input type='button' id='xsright' value=">" onclick='test1.reposition(0.05); go();'>
-<input type='button' id='ysdown' value="v" onclick='test1.reposition(0,0.05); go();'>
+<input type="number" id="rotation" min='0' max='359' value="0" size="1">
+
+<input type='button' id='xsleft' value="<" onclick='test1.reposition(-0.01); go();'>
+<input type='button' id='ysup' value="^" onclick='test1.reposition(0,-0.01); go();'>
+<input type='button' id='xsright' value=">" onclick='test1.reposition(0.01); go();'>
+<input type='button' id='ysdown' value="v" onclick='test1.reposition(0,0.01); go();'>
 <br>
 
+<select onchange="test1.scale(parseFloat(this.value)); go();">
+ <option value="-0.1">-0.1</option>
+ <option value="-0.5">-0.5</option>
+ <option value="0" selected>zoom</option>
+ <option value="0.1">0.1</option>
+ <option value="0.2">0.2</option>
+ <option value="0.5">0.5</option>
+</select>
 
 scalars: <input type="text" id="scalarA1" size="1"><input type="text" id="scalarB1" size="1"><input type="text" id="scalarC1" size="1"><input type="text" id="scalarD1" size="1"><input type="text" id="scalarj" size="1"><input type="text" id="scalarj1" size="1"><input type="text" id="scalarj2" size="1">
-<input id ="testOne" type="button" value="Render" onClick="goDefault();ready();go();"></br>
+<input id ="testOne" type="button" value="Render" onClick="goDefault();ready();go();">
+
+<select id='default' onchange='goDefault();'>
+ <option value="true" selected>ShowDefault</option>
+ <option value="false">Off</option>
+</select>
+<div id='renderTimes'></div>
 		
 <canvas id="canvas" width="200" height="200">
     HTML5 Canvas not supported.
@@ -141,7 +167,8 @@ scalars: <input type="text" id="scalarA1" size="1"><input type="text" id="scalar
 				ctx2 = canvas2.getContext('2d'),
 				plasma = $('plasma');
 				ctp = plasma.getContext('2d'),
-				zoom = 100,
+				scale = 100,
+				zoom = 0.5,
 				size = $('size'),
 				test1 = new Fractal(size.value),
 				test = new Fractal(size.value),
@@ -159,7 +186,6 @@ scalars: <input type="text" id="scalarA1" size="1"><input type="text" id="scalar
 				j1 = $('scalarj1'),
 				j2 = $('scalarj2'),
 				cit = $('color.it'),
-				tree = new Fractal(200,200),
 				renders = $('renderTimes');
 
 
@@ -178,7 +204,7 @@ ready = function()
 		if (test1.type == 'tree1' )
 		{ 
 			if (ite.value > 20) {ite.value = 20;}
-			aS.value = 3 - ite.value/8;
+			//aS.value = 3 - ite.value/8;
 		}
 		test1.iterations = parseInt(ite.value);
 		test1.scalar.a = parseFloat(aS.value);
@@ -226,29 +252,37 @@ initTest1 = function ()
 		aS.value = bS.value = cS.value = dS.value = 1;
 		j.value = 1;
 		j1.value = j2.value = 0;
-		cit.value = 1;
+		cit.value = 12;
+		ite.value = 32;
+		zoom = 0.5;
 		test1 = new Fractal;
 		test = new Fractal(parseInt(size.value));
 }
 
 goDefault = function()
 { var sv = parseInt(size.value);
-		canvas2.height = sv;
-		canvas2.width = sv;
+	var opt = $('default').options[$('default').selectedIndex];
+	canvas2.height = sv;
+	canvas2.width = sv;
 	test.height = sv;
-test.width = sv;
-test.render();
-showRenders();
-test.draw(ctx2);
+	test.width = sv;
+	if (opt.value == 'true')
+	{
+	  test.render();
+	  showRenders();
+		test.draw(ctx2);
+	}
+	else
+	{
+	 ctx2.clearRect(0,0,sv,sv);
+	}
+
 }
 
 initTest1();
 goDefault();
 ready();
 go();
-tree.tree();
-tree.render();
-tree.draw(ctp);
 
 
 
@@ -264,12 +298,16 @@ canvas.onclick = function(e)
 	var repx = (offcenterX)/(canvas.width);
 	var repy = (offcenterY)/(canvas.height);
 	test1.reposition(repx,repy);
-  test1.scale(0.2);
+	
+  test1.scale(zoom);
 	xi.value = test1.scalar.x*33 + 100;
 	yi.value = test1.scalar.y*33 + 100;
-
+  zoom /= 1.4;
+	zoom = bind(zoom,1,0.01);
  go();
 }
+
+
 
 function findOffset(obj)
 {	var curX,curY;
@@ -278,17 +316,19 @@ function findOffset(obj)
   {	do
   	{	curX += obj.offsetLeft;
   	  curY += obj.offsetTop;
-  	} while (obj = obj.offsetParent);
+  	} while (obj == obj.offsetParent);
   return {x:curX,y:curY};
   }
 };
 
 function changeZoom(sel)
-{
+{ zoom = 0.5;
 	var opt = sel.options[sel.selectedIndex];
-	zoom = parseFloat(opt.value);
-	test1.scalar.x = test1.scalar.y = (zoom-100)/33;
-	xi.value = yi.value = zoom;
+	scale = parseFloat(opt.value);
+	test1.scalar.x = test1.scalar.y = (scale-100)/33;
+	xi.value = yi.value = scale;
+	test1.xs = test1.ys = 0;
+	ready();
 go();
 }
 
@@ -383,20 +423,31 @@ function changeAlgorithm(sel)
 		 break;
 		case "plasma":
 			test1.plasma();
-			cit.value = ite.value;
+			cit.value = 32;
 			test.toRGB(255,255,255);
 			test.plasma();
+			test.color.it = 32;
+			aS.value = 'n/a';
+			bS.value = 'n/a';
+			cS.value = 'n/a';
+			dS.value = 'n/a';
+			j.value = 'n/a';
+			j1.value = 'n/a';
+			j2.value = 'n/a';
 			goDefault();
 			ready();
 			go();
 			break;
 		 case "tree1":
+			initTest1();
 			ite.value = 12;
 			test1.tree();
+			aS.value = test1.scalar.a;
 			test.toRGB(0,255,0);
 			test.tree();
 			goDefault();
-			ready();go();
+			ready();
+			go();
 			break;
 		case "julia1" :
 			initTest1();
