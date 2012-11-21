@@ -18,6 +18,14 @@ g<input type="number" id="green1" size="1" value="0" min="0" max="255">
 b<input type="number" id="blue1" size="1" value="255" min="0" max="255">
 depth:<input type="number" id="color.it" size="1" value="1" min="0">
 
+<select id ="changeTexture" onchange="changeTexture(this);">
+ <option value="none" selected>Texture:</option>
+ <option value="cloud" >Cloud</option>
+ <option value="plasma" >Plasma</option>
+ <option value="terrain" >Terrain</option>
+ <option value="none" >Default</option>
+</select>
+
 <select id ="changeType" onchange="changeType(this);">
  <option value="normal" selected>Algorithm:</option>
  <option value="smoothe" >Smoothe</option>
@@ -106,7 +114,7 @@ Y: <input type="number" id="scaleY1" value="118" size="1">
 <input type='button' id='ysdown' value="v" onclick='test1.reposition(0,0.01); go();'>
 <br>
 
-<select onchange="test1.scale(parseFloat(this.value)); go();">
+<select onchange="test1.scale(parseFloat(this.value)); zoom = 0.2; go();">
  <option value="-0.1">-0.1</option>
  <option value="-0.5">-0.5</option>
  <option value="0" selected>zoom</option>
@@ -354,6 +362,16 @@ function rotate(sel)
 ready();go();
 }
 
+function changeTexture(sel)
+{
+	var opt = sel.options[sel.selectedIndex];
+	test1.texture = test.texture = opt.value;
+	ready();
+	test1.stroke();
+	test1.draw();
+	goDefault();
+}
+
 function changeType(sel)
 {	var algorithmType = sel.options[sel.selectedIndex].value;
 	var algo = test.algorithm;
@@ -382,7 +400,7 @@ function changeColor(sel)
 	else if (color == "orange")	{ri.value=255; gi.value=165; bi.value=0;}
 	else if (color == "yellow")	{ri.value=255; gi.value=255; bi.value=0;}
 	else if (color == "white")	{ri.value=255; gi.value=255; bi.value=255;}
-	cit.value = (color == 'none') ? 1 : (test1.type == 'plasma') ? ite.value : 10;
+	cit.value = (color == 'none') ? 1 : (test1.type == 'plasma') ? 32 : 10;
 	ready(); test1.stroke();test1.draw(); showRenders();
 }
 

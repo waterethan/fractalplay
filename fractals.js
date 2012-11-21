@@ -123,6 +123,7 @@ Fractal = function (width, height)
   this.algorithm = algorithms.mj;
   this.speed = 1;
   this.algo = 'normal';
+  this.texture = 'none';
   this.iterations = 32;
   this.points = [];
   this.xs = -0.5; // x Shift
@@ -139,29 +140,50 @@ Fractal = function (width, height)
   this.showTime = true;
   this.type = 'mandelbrot';
   this.lastRender = 'n/a';
-  this.getColor = function(c, type, mod0,mod1,mod2) //not in use
+} 
+ 
+ Fractal.prototype.getColor = function(c, texture, mod0, mod1, mod2, weight) //not in use
   {
-    var red = 0, green = 0, blue = 0;
+    var red = c, green = c, blue = c;
 
-    switch (type)
-    {
-      case 1:
+    switch (texture)
+    { 
+    
+      case 'cloud':
         
         if (c < 0.3)
-          {return {r:0,g:0,b:255}}
-        red = green = blue = c;
-        
-
-        //blue = 1;
-        
+        { mod0 = mod1 = 0;
+          mod2 = 255 * weight;
+        } 
         break;
-      case 0:
+      
+      case 'terrain' :
+        
+        if (c < 0.3) //sea level: 'blue'
+        { mod0 = mod1 = 0;
+          mod2 = 255 * weight; 
+        } else if (c < 0.4) //beach: 'goldenrod'
+        { mod0 = 218 * weight;
+          mod1 = 165 * weight;
+          mod2 = 32 * weight;
+        } else if (c < 0.6) // hill: 
+        { mod0 = 32/c;
+          mod1 = 139/c;
+          mod2 = 32/c;
+        } else if (c < 0.8) // hill: 
+        { mod0 = 139/c;
+          mod1 = 69/c;
+          mod2 = 19/c;
+        }
+        break;
+        
+      
+      case 'plasma' :
         //r
         if (c < 0.5)
           red = c * 2;
         else
           red = (1.0 - c) * 2;
-
         //g
         if (c >= 0.3 && c < 0.8)
           green = (c - 0.3) * 2;
@@ -169,13 +191,13 @@ Fractal = function (width, height)
           green = (0.3 - c) * 2;
         else
           green = (1.3 - c) * 2;
-
         //b
         if (c >= 0.5)
           blue = (c - 0.5) * 2;
         else
           blue = (0.5 - c) * 2;
         break;
+      
       default:
         red = green = blue = c;
         break;
@@ -186,7 +208,7 @@ Fractal = function (width, height)
       b: bind(~~(blue * mod2),255)
     };
   }
-}
+
 
 /* Plan to cleanup the class by pulling many of the properties into an init function
 Fractal.prototype.init = function(type)
@@ -288,10 +310,10 @@ Fractal.prototype.stroke = function(style)
               pix[p+3] = 255;// alpha
             }
           } else if ( i < color)
-          {  
-            pix[p] =  i/gamma * r;   // red
-            pix[p+1] =  i/gamma * g; // green
-            pix[p+2] =  i/gamma * b; // blue
+          { c = this.getColor(i/gamma,this.texture,r,g,b, gamma); 
+            pix[p] =  c.r  // red
+            pix[p+1] =  c.g // green
+            pix[p+2] =  c.b // blue
             pix[p+3] = 255;          // alpha
           } else if (i > it - fill)
           { pix[p] = 0;//r; color fill to be implemented   // red
@@ -340,6 +362,7 @@ Fractal.prototype.mandelbrot = function(c) //non zero scalar -1 for tricorn; def
   this.scalar.b = this.scalar.a = this.scalar.d = this.j = 1;
   this.j1 = this.j2 = 0;
   this.type = 'mandelbrot';
+  this.texture = 'none';
 }
 
 Fractal.prototype.plasma = function(texture, roughness)
@@ -361,6 +384,7 @@ Fractal.prototype.julia = function(j1,j2)
   this.j1 = j1;
   this.j2 = j2;
   this.type = 'julia';
+  this.texture = 'none';
 }
 
 Fractal.prototype.terrain = function (displacement, sharpness, lineWidth) // 
@@ -448,10 +472,7 @@ Fractal.prototype.render = function (iterations) // default=32;
       this.stroke();
       
       
-      if (crop >= 0)
-      { this.context.fillStyle = 'white';
-      } else
-      { this.context.fillStyle = 'black'}
+      
     } else if (this.type == 'terrain')
     { 
       for (i=0; i<=it; ++i)
