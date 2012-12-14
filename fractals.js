@@ -177,6 +177,25 @@ Fractal = function (width, height)
         }
         break;
         
+      case 'grid' :
+        
+        if (c < 0.3) //sea level: 'blue'
+        { mod0 = mod1 = 0;
+          mod2 = 255 * weight; 
+        } else if (c < 0.4) //beach: 'goldenrod'
+        { mod0 = 218 * weight;
+          mod1 = 165 * weight;
+          mod2 = 32 * weight;
+        } else if (c < 0.6) // hill: 
+        { mod0 = 32/c;
+          mod1 = 139/c;
+          mod2 = 32/c;
+        } else if (c < 0.8) // hill: 
+        { mod0 = 139/c;
+          mod1 = 69/c;
+          mod2 = 19/c;
+        }
+        break;
       
       case 'plasma' :
         //r
@@ -249,6 +268,7 @@ Fractal.prototype.stroke = function(style)
       if (type == 'plasma')
       { gradient = this.color.gamma;
       }
+      
       if (type == 'terrain')
     {
       this.context.fillRect(0,0,w,h);
@@ -264,9 +284,9 @@ Fractal.prototype.stroke = function(style)
           this.context.stroke();
       this.context.restore();
     } else if (type == 'plasmatest') //very slow;
-      { for (var x = 0; x < this.canvas.width; x++)
+      { for (var x = 0; x < w; x++)
         {
-        for (var y = 0; y < this.canvas.height; y++)
+        for (var y = 0; y < h; y++)
           {
         //get color for each pixel
           var color = this.getColor(this.points[x][y], 1, r, g, b);
@@ -285,9 +305,8 @@ Fractal.prototype.stroke = function(style)
       this.context.closePath();
       this.lastRender = Date.now() - start;
       this.context.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
-      this.context.stroke();
-      }
-      else
+      this.context.stroke(); 
+      } else
       { var crop = this.crop,
           gamma = this.color.gamma,
           fill = this.fill || 0,
@@ -330,6 +349,31 @@ Fractal.prototype.stroke = function(style)
           }
         }
         this.context.putImageData(imgd, 0,0);
+      }
+      if (this.texture == 'grid')
+      { //this.context.fillRect(0,0,w,h);
+        this.context.save();
+          
+          this.context.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
+          this.context.lineWidth = this.scalar.c;
+          for (var x=0; x<w/10; x++)
+          {   this.context.moveTo(x*10,0);
+              this.context.lineTo(x*10,h);
+              this.context.stroke();
+            
+          }
+          for (var y=0; y<h/10; y++)
+          { this.context.save();
+            this.context.translate(0,y*10);
+            this.context.moveTo(0,0);
+            for (var x=0; x<w/10; x++)
+            {
+              this.context.lineTo(x * 10,this.points[x*10][y * 10] * gradient);
+            }
+            this.context.stroke();
+            this.context.restore();
+          }
+      this.context.restore();
       }
       this.lastStroke = Date.now() - start;
     }
@@ -427,7 +471,7 @@ Fractal.prototype.render = function (iterations) // default=32;
   this.canvas.width = this.width/this.speed;
   this.canvas.height = this.height/this.speed;
   var time = Date.now(),
-      points = [[]],
+      points = [],
       r  = this.color.red,
       g  = this.color.green,
       b  = this.color.blue,
@@ -469,7 +513,7 @@ Fractal.prototype.render = function (iterations) // default=32;
       }
       this.points = points;
       this.lastRender =  Date.now() - time;
-      this.stroke();
+      
       
       
       
@@ -482,7 +526,7 @@ Fractal.prototype.render = function (iterations) // default=32;
       this.algorithm[this.algo](points,0, it, this.scalar.a, this.scalar.b);
       this.points = points; 
       this.lastRender = Date.now() - time;
-      this.stroke();
+      
       
     } else if (this.type == 'plasma')
     { 
@@ -500,12 +544,12 @@ Fractal.prototype.render = function (iterations) // default=32;
       this.algorithm[this.algo](points, 0, 0, w, h, p1, p2, p3, p4, roughness);
       this.points = points;
       this.lastRender = Date.now() - time;
-      this.stroke(); 
+      
     } else if (this.type == 'tree1')
     { 
-      this.stroke();
+      
     }
-    
+    this.stroke();
 }
 
 
