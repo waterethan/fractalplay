@@ -177,24 +177,10 @@ Fractal = function (width, height)
         }
         break;
         
-      case 'grid' :
-        
-        if (c < 0.3) //sea level: 'blue'
-        { mod0 = mod1 = 0;
-          mod2 = 255 * weight; 
-        } else if (c < 0.4) //beach: 'goldenrod'
-        { mod0 = 218 * weight;
-          mod1 = 165 * weight;
-          mod2 = 32 * weight;
-        } else if (c < 0.6) // hill: 
-        { mod0 = 32/c;
-          mod1 = 139/c;
-          mod2 = 32/c;
-        } else if (c < 0.8) // hill: 
-        { mod0 = 139/c;
-          mod1 = 69/c;
-          mod2 = 19/c;
-        }
+      case 'topo' :
+        var mod;
+        if (mod0==mod2 && mod2==mod1) {mod = 0} else {mod =1}
+        if (c % 0.15 <= 0.05){red = green = blue = mod} else {red = green = blue = mod0 = mod1 = mod2 = 255}
         break;
       
       case 'plasma' :
@@ -270,19 +256,20 @@ Fractal.prototype.stroke = function(style)
       }
       
       if (type == 'terrain')
-    {
-      this.context.fillRect(0,0,w,h);
-      this.context.save();
-        this.context.translate(0,h/2);
+    { var fractx = this.canvas.getContext('2d');
+      fractx.fillRect(0,0,w,h);
+      fractx.save();
+        fractx.translate(0,h/2);
           
-          this.context.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
-          this.context.lineWidth = this.scalar.c;
-          for (var i=0; i<=it; ++i)
+          fractx.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
+          fractx.lineWidth = this.scalar.c;
+          fractx.moveTo(0,this.points[0]);
+          for (var i=1; i<=it; ++i)
           {
-            this.context.lineTo(i*w/it,this.points[i]);
+            fractx.lineTo(i*w/it,this.points[i]);
           }
-          this.context.stroke();
-      this.context.restore();
+          fractx.stroke();
+      fractx.restore();
     } else if (type == 'plasmatest') //very slow;
       { for (var x = 0; x < w; x++)
         {
@@ -301,7 +288,7 @@ Fractal.prototype.stroke = function(style)
         //this.canvas.width = this.scalar.a * this.scalar.a;
       this.context.lineWidth   = 1;
       this.context.beginPath();
-      this.generate(this.canvas.width/2, this.canvas.height, this.angle, this.iterations, this.crop, this.scalar.a);
+      this.algorithm(this.canvas.width/2, this.canvas.height, this.angle, this.iterations, this.crop, this.scalar.a);
       this.context.closePath();
       this.lastRender = Date.now() - start;
       this.context.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
@@ -349,31 +336,6 @@ Fractal.prototype.stroke = function(style)
           }
         }
         this.context.putImageData(imgd, 0,0);
-      }
-      if (this.texture == 'grid')
-      { //this.context.fillRect(0,0,w,h);
-        this.context.save();
-          
-          this.context.strokeStyle = 'rgba(' + r +',' + g +',' + b +',1)';
-          this.context.lineWidth = this.scalar.c;
-          for (var x=0; x<w/10; x++)
-          {   this.context.moveTo(x*10,0);
-              this.context.lineTo(x*10,h);
-              this.context.stroke();
-            
-          }
-          for (var y=0; y<h/10; y++)
-          { this.context.save();
-            this.context.translate(0,y*10);
-            this.context.moveTo(0,0);
-            for (var x=0; x<w/10; x++)
-            {
-              this.context.lineTo(x * 10,this.points[x*10][y * 10] * gradient);
-            }
-            this.context.stroke();
-            this.context.restore();
-          }
-      this.context.restore();
       }
       this.lastStroke = Date.now() - start;
     }
@@ -443,14 +405,7 @@ Fractal.prototype.terrain = function (displacement, sharpness, lineWidth) //
 }
 
 Fractal.prototype.tree = function (type, iterations, angle)
-{ this.algorithm = algorithms.tree;
-  this.algo = 'mono';
-  this.type = type || 'tree1';
-  this.lastRender = 0;
-  this.angle = -90;
-  this.iterations = iterations || 12;
-  this.scalar.a = 1 + this.width/100 - this.iterations/10;
-  this.generate = function (x1, y1, angle, it, crop, length)
+{ this.algorithm = function (x1, y1, angle, it, crop, length)
           {
             if (it != 0)
             {
@@ -458,15 +413,21 @@ Fractal.prototype.tree = function (type, iterations, angle)
               var y2 = y1 + (Math.sin(angle * toRad) * it * length);
               this.context.moveTo(x1, y1);
               this.context.lineTo(x2, y2);
-              this.generate(x2, y2, angle - 20, it - 1,crop,length);
-              this.generate(x2, y2, angle + 20, it - 1,crop, length);
+              this.algorithm(x2, y2, angle - 20, it - 1,crop,length);
+              this.algorithm(x2, y2, angle + 20, it - 1,crop, length);
             } 
           }
+  this.algo = 'mono';
+  this.type = type || 'tree1';
+  this.lastRender = 0;
+  this.angle = -90;
+  this.iterations = iterations || 12;
+  this.scalar.a = 1 + this.width/100 - this.iterations/10;
 }
 
 
 
-Fractal.prototype.render = function (iterations) // default=32;
+Fractal.prototype.generate = function (iterations) // default=32;
 { // localize properties for speed and take note of the time so we can see how long this takes;
   this.canvas.width = this.width/this.speed;
   this.canvas.height = this.height/this.speed;
@@ -549,10 +510,14 @@ Fractal.prototype.render = function (iterations) // default=32;
     { 
       
     }
-    this.stroke();
+   
 }
 
-
+Fractal.prototype.render = function(iterations)
+{
+   this.generate(iterations);
+   this.stroke();
+}
 
 Fractal.prototype.draw = function (canvasContext,xCord,yCord, width, height)
 {   var xC = xCord || 0,

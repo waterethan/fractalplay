@@ -58,7 +58,7 @@ Terrain.prototype.generate = function(detail)
 { this.detail = detail || 30;
   var f = new Fractal(detail);
   f.plasma();
-  f.render();
+  f.generate();
   for (var i=0;i<detail;i++)
   { this.points[i] = [];
     for (var j=0;j<detail;j++)
@@ -89,11 +89,11 @@ Terrain.prototype.getColor = function(i,j)
 				if (a_temp[2] < 0) {
 					return 'rgb(160,160,64)';
 				} else {
-					if (a_temp[3] / step > 8) {
+					if (a_temp[3] > 8) {
 						temp = Math.min(Math.floor(a_temp[0] * 8) + 50, 255);
 						return 'rgb('+temp+','+temp+','+temp+')';
 					} else {
-						slope = (a_temp[3] - a_temp[0]) / step;
+						slope = (a_temp[3] - a_temp[0]);
 						temp = Math.min(Math.floor((slope * 16) + (a_temp[0] * 4)), 155);
 						return 'rgb('+temp+','+(temp+100)+','+temp+')';
 					}
@@ -102,7 +102,8 @@ Terrain.prototype.getColor = function(i,j)
 }
 
 Terrain.prototype.render = function()
-{ var matrix = new Matrix(4,4);
+{ 
+  var matrix = new TWO.V(1);
       matrix.rotate(this.angleX,0);
 			matrix.rotate(this.angleY,1);
       matrix.rotate(this.angleZ,2);
@@ -121,38 +122,31 @@ Terrain.prototype.render = function()
         {
 					
 					//sm.rotate(gangle,0);
-					var square1 = new Face();
-					//square1.p3d = Square3D(10);
+					var surface = new TWO.Face();
+					//surface.p3d = Square3D(10);
           
-					square1.p3d[0] = (i+start)*gridSize;
-					square1.p3d[1] = (j+start)*gridSize;
-					square1.p3d[2] = (Math.max(terrain.points[i+start][j+start], 0) * zScalar);
-					square1.p3d[3] = (i+start)*gridSize;
-					square1.p3d[4] = (j+start+step)*gridSize;
-					square1.p3d[5] = (Math.max(terrain.points[i+start][j+start+step], 0) * zScalar);
-					square1.p3d[6] = (i+start+step)*gridSize;
-					square1.p3d[7] = (j+start+step)*gridSize;
-					square1.p3d[8] = (Math.max(terrain.points[i+start+step][j+start+step], 0) * zScalar);
-					square1.p3d[9] = (i+start+step)*gridSize;
-					square1.p3d[10] = (j+start)*gridSize;
-					square1.p3d[11] = (Math.max(terrain.points[i+start+step][j+start], 0) * zScalar);
+					surface.p3d[0] = (i+start)*gridSize;
+					surface.p3d[1] = (j+start)*gridSize;
+					surface.p3d[2] = (Math.max(this.points[i+start][j+start], 0) * zScalar);
+					surface.p3d[3] = (i+start)*gridSize;
+					surface.p3d[4] = (j+start+step)*gridSize;
+					surface.p3d[5] = (Math.max(this.points[i+start][j+start+step], 0) * zScalar);
+					surface.p3d[6] = (i+start+step)*gridSize;
+					surface.p3d[7] = (j+start+step)*gridSize;
+					surface.p3d[8] = (Math.max(this.points[i+start+step][j+start+step], 0) * zScalar);
+					surface.p3d[9] = (i+start+step)*gridSize;
+					surface.p3d[10] = (j+start)*gridSize;
+					surface.p3d[11] = (Math.max(this.points[i+start+step][j+start], 0) * zScalar);
 					
-					var sm = new Matrix(4,4);
+					var sm = new TWO.V(1);
           
 					sm.translate(-start*gridSize,-start*gridSize,0);
-					square1.p3d = sm.transformArray(square1.p3d);
-					square1.p3d = matrix.transformArray(square1.p3d);
-					square1.scale(this.zoom);
-					this.ctx.beginPath();
-					square1.draw(this.ctx);
-					var color = this.getColor(i+start,j+start);
-					this.ctx.strokeStyle = color;
-					this.ctx.stroke();
-					
-					this.ctx.fillStyle = color;
-					this.ctx.fill();
-          
-				
+					surface.p3d = sm.transformArray(surface.p3d);
+					surface.p3d = matrix.transformArray(surface.p3d);
+					surface.scale(this.zoom);
+					surface.color = this.getColor(i+start,j+start);
+          //surface.texture = 'none';
+          surface.draw(this.ctx); 				
         }
       }
       this.ctx.restore();

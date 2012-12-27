@@ -68,7 +68,6 @@ Matrix.prototype.multiply = function(o) //concatinate this matrix with other mat
 
 Matrix.prototype.scale = function(x, y, z)
 { var temp = new Matrix(4,4);
-	temp.identify();
 	temp.m[0][0] = x;
 	temp.m[1][1] = y;
 	temp.m[2][2] = z;
@@ -121,12 +120,12 @@ Matrix.prototype.transformPoint = function(x,y,z)
 { var a = this.transformArray([x,y,z]);
   return {x: a[0],y: a[1], z: a[2]};
 }
+
 Matrix.prototype.transformArray=function(arr)
 { var rVal=[];
-	var numPoints=arr.length/3;
-	for(var i=0;i<numPoints;i++)
-	{
-		var i3=i*3;
+	var l=arr.length/3;
+	for(var i=0;i<l;i++)
+	{	var i3=i*3;
 		var x=arr[i3];
 		var y=arr[i3+1];
 		var z=arr[i3+2];

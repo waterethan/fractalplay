@@ -6,15 +6,16 @@
 	</head>
 	<body>
 		detail:<input type="number" id="detail" size='1' value="32" />
-		<input type="button" onclick="rotationX(0.05);" value="<x" />
-		<input type="button" onclick="rotationX(-0.05);" value="x>" />
-		<input type="button" onclick="rotationY(0.05);" value="<y" />
-		<input type="button" onclick="rotationY(-0.05);" value="y>" />
-		<input type="button" onclick="rotationZ(0.05);" value="<z" />
-		<input type="button" onclick="rotationZ(-0.05);" value="z>" />
-		<input type="button" onclick="scale(10);" value="In" />
-		<input type="button" onclick="scale(-10);" value="out" />
-		<input type="button" onclick="generateLandscape();" value="Generate" />
+		Sealevel:<input type="number" id="sl" size='1' value="17" />
+		<input type="button" onclick="rotationX(-0.05); terrainRender();" value="<x" />
+		<input type="button" onclick="rotationX(0.05); terrainRender();" value="x>" />
+		<input type="button" onclick="rotationY(0.05); terrainRender();" value="<y" />
+		<input type="button" onclick="rotationY(-0.05); terrainRender();" value="y>" />
+		<input type="button" onclick="rotationZ(0.05); terrainRender();" value="<z" />
+		<input type="button" onclick="rotationZ(-0.05); terrainRender();" value="z>" />
+		<input type="button" onclick="scale(10); terrainRender();" value="In" />
+		<input type="button" onclick="scale(-10); terrainRender();" value="out" />
+		<input type="button" onclick="generateLandscape(); terrainRender();" value="Generate" />
 		<div class="canvas">
 			<div style="position: absolute;" >
 				<canvas id="cv1" width="800" height="500"><h3>Sorry, your browser does not support the HTML5 Canvas object</h3></canvas>
@@ -22,8 +23,8 @@
 			
 			
 		</div>
+		<script language="javascript" src="data.js" type="text/javascript"></script>
 		<script language="javascript" src="fractals.js" type="text/javascript"></script>
-<script language="javascript" src="matrix.js" type="text/javascript"></script>
 <script language="javascript" src="two.js" type="text/javascript"></script>
 <script language="javascript" src="terrain.js" type="text/javascript"></script>
 		<script>
@@ -47,18 +48,28 @@ function scale(amount) {speed4 += amount;}
 
 
 function generateLandscape()
-{ var detail = parseInt(document.getElementById('detail').value);
-	terrain.generate(detail);
+{ 
+	terrain.seaLevel = parseInt(document.getElementById('sl').value);
+	terrain.generate(parseInt(document.getElementById('detail').value));
 }
 
 
 
 function init()
-{
+{ 
 	generateLandscape();
+	terrainRender();
 	setInterval(draw, 50);
 }
 
+function terrainRender()
+{
+			terrain.angleX = angleX;
+			terrain.angleY = angleY;
+			terrain.angleZ = angleZ;
+			terrain.zoom = zoom;
+			terrain.render();
+}
 function draw()
 {
 	cv = document.getElementById('cv1');
@@ -73,22 +84,20 @@ function draw()
 			ctx.fillStyle = 'rgb(0,0,0)';
 			ctx.fillRect (0, 0, width, height);
 			ctx.fillStyle = 'white';
-			ctx.fillText(angleX+' '+angleY+' ' +angleZ,20,20);
-			terrain.angleX = angleX;
-			terrain.angleY = angleY;
-			terrain.angleZ = angleZ;
-			terrain.zoom = zoom;
-			terrain.render();
+			ctx.fillText(speed+' '+speed2+' ' +speed3,20,20);
 			terrain.draw(ctx);
-			
 			// Rotate landscape
-			angleX += speed;
-			angleY += speed2;
-			angleZ += speed3;
-			zoom += speed4;
+			if (speed + speed2 + speed3 + speed4 != 0)
+			{ angleX += speed;
+				angleY += speed2;
+				angleZ += speed3;
+				zoom += speed4;
+				terrainRender();
+			}
+			
 			//zAngle += speed;
 			//z += speed;
-			if (angleX > 2*Math.PI || angle < 0)
+			if (angleX > 2*Math.PI || angleX < 0)
 			{
 				angleX -= 2*Math.PI;
 			} 
