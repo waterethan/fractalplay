@@ -25,7 +25,6 @@
 function Terrain(size,viewportWidth,viewportHeight)
 { this.size = size || 1020;
   this.canvas = document.createElement('canvas');
-  this.ctx = this.canvas.getContext('2d');
   this.canvas.height = viewportHeight || this.size;
   this.canvas.width = viewportWidth || this.size;
   this.points = [];
@@ -56,12 +55,12 @@ Terrain.prototype.rotateZ = function(degrees)
 }
 Terrain.prototype.generate = function(detail)
 { this.detail = detail || 30;
-  var f = new Fractal(detail);
+  var f = new Fractal(this.detail);
   f.plasma();
   f.generate();
-  for (var i=0;i<detail;i++)
+  for (var i=0;i<this.detail;i++)
   { this.points[i] = [];
-    for (var j=0;j<detail;j++)
+    for (var j=0;j<this.detail;j++)
     {
       this.points[i][j] = f.points[i][j] * 34 - this.seaLevel;
     }
@@ -70,47 +69,48 @@ Terrain.prototype.generate = function(detail)
 }
 
 Terrain.prototype.getColor = function(i,j)
-{ a_temp = new Array(4);
+{ temp = [];
 	// Get elevations from four corners
-			a_temp[0] = this.points[i][j];
-			a_temp[1] = this.points[i][j+1];
-			a_temp[2] = this.points[i+1][j+1];
-			a_temp[3] = this.points[i+1][j];
+			temp[0] = this.points[i][j];
+			temp[1] = this.points[i][j+1];
+			temp[2] = this.points[i+1][j+1];
+			temp[3] = this.points[i+1][j];
 			function sortNumber(a,b) { return a - b; }
 			// Sort elevations
-			a_temp.sort(sortNumber);
-
+			temp.sort(sortNumber);
+      
+      
 			// If the maximum height is below sea level, colour it a shade of blue dependant on the depth
-			if (a_temp[3] < 0) {
-				return  'rgb(0,0,'+Math.floor(192+(a_temp[3] * 8))+')';
+			if (temp[3] < 0) {
+				return  'rgb(0,0,'+Math.floor(192+(temp[3] * 8))+')';
 			} else {
 
 				// Maximum is at or above sea level.  If the others are below, set the colour to yellow (sand)
-				if (a_temp[2] < 0) {
-					return 'rgb(160,160,64)';
+				if (temp[2] < 0) {
+					return 'rgb(238,214,175)';
 				} else {
-					if (a_temp[3] > 8) {
-						temp = Math.min(Math.floor(a_temp[0] * 8) + 50, 255);
-						return 'rgb('+temp+','+temp+','+temp+')';
+					if (temp[3] > 8) {
+						col = Math.min(Math.floor(temp[0] * 8) + 50, 255);
+						return 'rgb('+col+','+col+','+col+')';
 					} else {
-						slope = (a_temp[3] - a_temp[0]);
-						temp = Math.min(Math.floor((slope * 16) + (a_temp[0] * 4)), 155);
-						return 'rgb('+temp+','+(temp+100)+','+temp+')';
+						slope = (temp[3] - temp[0]);
+						col = Math.min(Math.floor((slope * 16) + (temp[0] * 4)), 155);
+						return 'rgb('+col+','+(col+100)+','+col+')';
 					}
 				}
 			}
 }
 
 Terrain.prototype.render = function()
-{ 
+{ var tctx = this.canvas.getContext('2d');
   var matrix = new TWO.V(1);
       matrix.rotate(this.angleX,0);
 			matrix.rotate(this.angleY,1);
       matrix.rotate(this.angleZ,2);
 			matrix.translate(0,0,1000);
-  this.ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
-  this.ctx.save();
-  this.ctx.translate(this.canvas.width/2,this.canvas.height/2);
+  tctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+  tctx.save();
+  tctx.translate(this.canvas.width/2,this.canvas.height/2);
   var zScalar = this.elevationScalar;
   var step = 1;
 			var gridSize = this.size/this.detail;
@@ -119,37 +119,29 @@ Terrain.prototype.render = function()
 			for (var i=-start; i<end; i++)
       {
 				for ( var j=-start; j<end; j++)
-        {
-					
-					//sm.rotate(gangle,0);
-					var surface = new TWO.Face();
-					//surface.p3d = Square3D(10);
+        { var surface = new TWO.Face();
           
-					surface.p3d[0] = (i+start)*gridSize;
-					surface.p3d[1] = (j+start)*gridSize;
+					surface.p3d[0] = i*gridSize;
+					surface.p3d[1] = j*gridSize;
 					surface.p3d[2] = (Math.max(this.points[i+start][j+start], 0) * zScalar);
-					surface.p3d[3] = (i+start)*gridSize;
-					surface.p3d[4] = (j+start+step)*gridSize;
+					surface.p3d[3] = i*gridSize;
+					surface.p3d[4] = (j+step)*gridSize;
 					surface.p3d[5] = (Math.max(this.points[i+start][j+start+step], 0) * zScalar);
-					surface.p3d[6] = (i+start+step)*gridSize;
-					surface.p3d[7] = (j+start+step)*gridSize;
+					surface.p3d[6] = (i+step)*gridSize;
+					surface.p3d[7] = (j+step)*gridSize;
 					surface.p3d[8] = (Math.max(this.points[i+start+step][j+start+step], 0) * zScalar);
-					surface.p3d[9] = (i+start+step)*gridSize;
-					surface.p3d[10] = (j+start)*gridSize;
+					surface.p3d[9] = (i+step)*gridSize;
+					surface.p3d[10] = j*gridSize;
 					surface.p3d[11] = (Math.max(this.points[i+start+step][j+start], 0) * zScalar);
-					
-					var sm = new TWO.V(1);
-          
-					sm.translate(-start*gridSize,-start*gridSize,0);
-					surface.p3d = sm.transformArray(surface.p3d);
+			
 					surface.p3d = matrix.transformArray(surface.p3d);
 					surface.scale(this.zoom);
 					surface.color = this.getColor(i+start,j+start);
           //surface.texture = 'none';
-          surface.draw(this.ctx); 				
+          surface.draw(tctx); 				
         }
       }
-      this.ctx.restore();
+      tctx.restore();
       //reset angles so as not to keep rotating every render
       this.angleX = 0;
       this.angleY = 0;

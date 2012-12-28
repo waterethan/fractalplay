@@ -252,7 +252,7 @@ Fractal.prototype.stroke = function(style)
           g = this.color.green,
           b = this.color.blue;
       if (type == 'plasma')
-      { gradient = this.color.gamma;
+      { //gradient = this.color.gamma;
       }
       
       if (type == 'terrain')
@@ -493,7 +493,7 @@ Fractal.prototype.generate = function (iterations) // default=32;
     { 
       var p1, p2, p3, p4,x,y;
       var roughness = this.roughness;
-      for (x = 0; x < w; x++)
+      for (x = 0; x <= w*2; x++)
       {
         points[x] = [];
       }
@@ -669,6 +669,34 @@ algorithms =
               {
                 //when last square is just a pixel, simply average it from the corners
                 points[x][y]= (p1 + p2 + p3 + p4) / 4;
+              }
+            },
+    smoothe: function(points, x, y, width, height, p1, p2, p3, p4, roughness)
+            { // clear values
+              for (x=0; x<=width; x++) {
+              	for (y=0; y<=height; y++) {
+                 points[x][y]=0; 
+                  
+                }
+              }
+              for (var i=width; i>0; i=Math.floor(i/2)) {
+
+              var j = i * 2;
+
+              for (x=0; x<width; x += j) {
+              	for (y=0; y<height; y += j) {
+                  // if (typeof points[x+j][y+j] != 'undefined') 
+              		{// 4 sides of our square
+              		s1 = points[x+i][y] = ((points[x][y] + points[x+j][y]) / 2) + (Math.random()) ;
+              		s2 = points[x+j][y+i] = ((points[x+j][y] + points[x+j][y+j]) / 2) + (Math.random() ) ;
+              		s3 = points[x+i][y+j] = ((points[x+j][y+j] + points[x][y+j]) / 2) + (Math.random() ) ;
+              		s4 = points[x][y+i] = ((points[x][y+j] + points[x][y]) / 2) + (Math.random() ) ;
+
+              		// Mid point
+              		points[x+i][y+i] = ((s1 + s2 + s3 + s4) / 4) + (Math.random() ) ;
+                  }
+                  }
+                }
               }
             }
   },
