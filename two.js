@@ -85,13 +85,14 @@ TWO.V = function (d)
 	}
 }
 
-//concatinate this matrix with other matrix o;
+
 TWO.V.prototype =
-{ multiply: function(o) 
+{ //concatinate this matrix with other matrix o;
+	multiply: function(o) 
 	{ var M = new TWO.V();
-		for (i=0;i<4;i++)
-		{ for (j=0;j<4;j++)
-			{ for (k=0;k<4;k++) 
+		for (i=0;i<3;i++)
+		{ for (j=0;j<3;j++)
+			{ for (k=0;k<3;k++) 
 				{ M.m[i][j] += this.m[i][k] * o.m[k][j];}
 			}		
 		}	
@@ -139,6 +140,8 @@ TWO.V.prototype =
 			rVal[i3+1]=this.m[0][1]*x+this.m[1][1]*y+this.m[2][1]*z+this.m[3][1];
 			rVal[i3+2]=this.m[0][2]*x+this.m[1][2]*y+this.m[2][2]*z+this.m[3][2];
 		}
+		
+		
 		return rVal;
 	},
 	translate: function(dx, dy, dz)

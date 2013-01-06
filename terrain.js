@@ -103,15 +103,13 @@ Terrain.prototype.getColor = function(i,j)
 
 Terrain.prototype.render = function()
 { var tctx = this.canvas.getContext('2d');
-  var matrix = new TWO.V(1);
-      matrix.rotate(this.angleX,0);
-			matrix.rotate(this.angleY,1);
-      matrix.rotate(this.angleZ,2);
-			matrix.translate(0,0,1000);
+  var matrix = new t3d.V(1,[this.angleX,this.angleY,this.angleZ],1000);
+			
+     
   tctx.clearRect(0,0,this.canvas.width,this.canvas.height);
   tctx.save();
   tctx.translate(this.canvas.width/2,this.canvas.height/2);
-  var zScalar = this.elevationScalar;
+  var zScalar = -this.elevationScalar;
   var step = 1;
 			var gridSize = this.size/this.detail;
       var start = Math.floor(this.detail/2);
@@ -119,7 +117,7 @@ Terrain.prototype.render = function()
 			for (var i=-start; i<end; i++)
       {
 				for ( var j=-start; j<end; j++)
-        { var surface = new TWO.Face();
+        { var surface = new t3d.Face();
           
 					surface.p3d[0] = i*gridSize;
 					surface.p3d[1] = j*gridSize;
